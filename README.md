@@ -87,6 +87,54 @@ pip install -r requirements.txt
 python -m bot.main
 ```
 
+## Run locally on Windows (with Ollama already installed)
+
+If Ollama is already running on your Windows host, the fastest setup is to run only the Telegram bot locally.
+
+1. Open PowerShell in this repository.
+2. Create and activate a virtual environment:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+```
+
+3. Install dependencies:
+
+```powershell
+pip install -r requirements.txt
+```
+
+4. Copy env template and set required values:
+
+```powershell
+copy .env.example .env
+```
+
+At minimum, provide:
+
+- `TELEGRAM_BOT_TOKEN` (from BotFather)
+- `OLLAMA_BASE_URL=http://127.0.0.1:11434`
+- `OLLAMA_MODEL` (example: `llama3.1:8b`)
+
+Optional but useful if Ollama was installed with CORS restrictions:
+
+- In Ollama environment: `OLLAMA_ORIGINS=*` (or a specific origin)
+
+5. Ensure your model is pulled:
+
+```powershell
+ollama pull llama3.1:8b
+```
+
+6. Start the bot:
+
+```powershell
+python -m bot.main
+```
+
+If you only want Ollama (no Gemini/Azure), leave Gemini/Azure variables empty.
+
 ## Notes
 
 - The bot uses long polling, so no webhook setup is required.
