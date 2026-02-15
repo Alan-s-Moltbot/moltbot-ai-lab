@@ -1,0 +1,30 @@
+services:
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: moltbot-agent
+    restart: unless-stopped
+    env_file:
+      - .env
+    depends_on:
+      - ollama
+    networks:
+      - moltbot-net
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: moltbot-ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - moltbot-net
+
+volumes:
+  ollama_data:
+
+networks:
+  moltbot-net:
