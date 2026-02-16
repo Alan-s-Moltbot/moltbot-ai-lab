@@ -1,5 +1,63 @@
 # Moltbot AI Lab
 
+## OpenClaw-Native Telegram Control (Recommended)
+
+If your goal is to control your agent through Telegram, use OpenClaw directly as the gateway/channel runtime instead of this custom router bot.
+
+### 1) Stop this stack first
+
+```bash
+docker compose down
+```
+
+### 2) Install OpenClaw
+
+```bash
+npm install -g openclaw@latest
+```
+
+### 3) Run onboarding
+
+```bash
+openclaw onboard
+```
+
+During onboarding, enable the Telegram channel and provide your BotFather token.
+
+### 4) Start the OpenClaw gateway
+
+```bash
+openclaw gateway
+```
+
+### 5) Pair and approve Telegram DM access
+
+Default Telegram DM policy is pairing. Approve pending code(s):
+
+```bash
+openclaw pairing list telegram
+openclaw pairing approve telegram <CODE>
+```
+
+### 6) Optional config file path
+
+OpenClaw reads config from:
+
+```text
+~/.openclaw/openclaw.json
+```
+
+You can also set:
+
+- `TELEGRAM_BOT_TOKEN` as env var, or
+- `channels.telegram.botToken` in OpenClaw config (config value takes precedence).
+
+Reference docs:
+
+- https://openclaw.im/docs/channels/telegram
+- https://openclaw.im/docs/start/wizard
+- https://openclaw.im/docs/gateway/configuration
+
 This repository now contains a **Moltbot Telegram agent** designed to run in Docker and route AI requests to:
 
 1. **Local Ollama** (default)
@@ -59,6 +117,25 @@ Optional global behavior:
 
 - `DEFAULT_PROVIDER` (`ollama`, `gemini`, or `azure`; default `ollama`)
 - `REQUEST_TIMEOUT_SECONDS` (default `60`)
+- `ADMIN_USER_IDS` (comma-separated Telegram user IDs that can run admin commands)
+- `ALLOW_UNSAFE_EXEC` (`true` to enable `/exec`; default `false`)
+
+## Telegram control commands
+
+Admin commands are available only to users listed in `ADMIN_USER_IDS`.
+
+- `/whoami` shows your Telegram `user_id` and `chat_id`
+- `/status` shows bot uptime and Ollama connectivity
+- `/models` lists installed Ollama models
+- `/pull <model>` pulls an Ollama model from Telegram
+- `/exec <cmd>` runs a shell command in the bot container (requires `ALLOW_UNSAFE_EXEC=true`)
+
+Example:
+
+```env
+ADMIN_USER_IDS=123456789
+ALLOW_UNSAFE_EXEC=false
+```
 
 ## Run with Docker Compose
 

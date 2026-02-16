@@ -9,6 +9,8 @@ class Settings:
     telegram_bot_token: str
     request_timeout_seconds: int
     default_provider: str
+    admin_user_ids: tuple[int, ...]
+    allow_unsafe_exec: bool
 
     ollama_base_url: str
     ollama_model: str
@@ -33,6 +35,28 @@ def _env(name: str, default: str | None = None) -> str | None:
     return value or None
 
 
+def _parse_bool(value: str | None, default: bool = False) -> bool:
+    if value is None:
+        return default
+    normalized = value.strip().lower()
+    return normalized in {"1", "true", "yes", "on"}
+
+
+def _parse_admin_ids(value: str | None) -> tuple[int, ...]:
+    if not value:
+        return ()
+    ids: list[int] = []
+    for raw in value.split(","):
+        item = raw.strip()
+        if not item:
+            continue
+        try:
+            ids.append(int(item))
+        except ValueError as exc:
+            raise RuntimeError(f"Invalid ADMIN_USER_IDS entry: {item}") from exc
+    return tuple(ids)
+
+
 def load_settings() -> Settings:
     telegram_bot_token = _env("TELEGRAM_BOT_TOKEN")
     if not telegram_bot_token:
@@ -48,6 +72,8 @@ def load_settings() -> Settings:
         telegram_bot_token=telegram_bot_token,
         request_timeout_seconds=int(_env("REQUEST_TIMEOUT_SECONDS", "60") or "60"),
         default_provider=default_provider,
+        admin_user_ids=_parse_admin_ids(_env("ADMIN_USER_IDS")),
+        allow_unsafe_exec=_parse_bool(_env("ALLOW_UNSAFE_EXEC"), default=False),
         ollama_base_url=_env("OLLAMA_BASE_URL", "http://ollama:11434") or "http://ollama:11434",
         ollama_model=_env("OLLAMA_MODEL", "llama3.1:8b") or "llama3.1:8b",
         gemini_api_key=_env("GEMINI_API_KEY"),
