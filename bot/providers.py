@@ -65,13 +65,32 @@ class ProviderRouter:
         return ProviderResult(provider="ollama", prompt=prompt, response_text=self._ask_ollama(prompt))
 
     def _ask_ollama(self, prompt: str) -> str:
-        url = f"{self.settings.ollama_base_url.rstrip('/')}/api/chat"
-        payload = {
+        base_url = self.settings.ollama_base_url.rstrip("/")
+        chat_url = f"{base_url}/api/chat"
+        chat_payload = {
             "model": self.settings.ollama_model,
             "messages": [{"role": "user", "content": prompt}],
             "stream": False,
         }
-        response = requests.post(url, json=payload, timeout=self.settings.request_timeout_seconds)
+        response = requests.post(chat_url, json=chat_payload, timeout=self.settings.request_timeout_seconds)
+
+        # Compatibility fallback for Ollama servers that do not implement /api/chat.
+        if response.status_code == 404:
+            generate_url = f"{base_url}/api/generate"
+            generate_payload = {
+                "model": self.settings.ollama_model,
+                "prompt": prompt,
+                "stream": False,
+            }
+            response = requests.post(
+                generate_url,
+                json=generate_payload,
+                timeout=self.settings.request_timeout_seconds,
+            )
+            response.raise_for_status()
+            data = response.json()
+            return data.get("response", "(No response from Ollama)").strip()
+
         response.raise_for_status()
         data = response.json()
         return data.get("message", {}).get("content", "(No response from Ollama)").strip()
