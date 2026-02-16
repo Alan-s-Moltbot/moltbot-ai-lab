@@ -1,218 +1,120 @@
 # Moltbot AI Lab
 
-## OpenClaw-Native Telegram Control (Recommended)
+This repository is now configured for **OpenClaw inside Docker** with Telegram control and local Ollama.
 
-If your goal is to control your agent through Telegram, use OpenClaw directly as the gateway/channel runtime instead of this custom router bot.
+## Architecture
 
-### 1) Stop this stack first
+- `openclaw` service: runs `openclaw gateway`
+- `ollama` service: serves local models
+- `openclaw_data` volume: persists OpenClaw onboarding/config
+- `ollama_data` volume: persists Ollama models
 
-```bash
-docker compose down
-```
+## Files
 
-### 2) Install OpenClaw
+- `docker-compose.yml` - OpenClaw + Ollama stack
+- `Dockerfile.openclaw` - container image for OpenClaw CLI
+- `.env.example` - required environment variables
 
-```bash
-npm install -g openclaw@latest
-```
+## Prerequisites
 
-### 3) Run onboarding
+- Docker Desktop running in Linux container mode
+- Telegram bot token from BotFather
+- OpenAI API key (if your OpenClaw agent/model setup requires it)
 
-```bash
-openclaw onboard
-```
+## Setup
 
-During onboarding, enable the Telegram channel and provide your BotFather token.
-
-### 4) Start the OpenClaw gateway
-
-```bash
-openclaw gateway
-```
-
-### 5) Pair and approve Telegram DM access
-
-Default Telegram DM policy is pairing. Approve pending code(s):
-
-```bash
-openclaw pairing list telegram
-openclaw pairing approve telegram <CODE>
-```
-
-### 6) Optional config file path
-
-OpenClaw reads config from:
-
-```text
-~/.openclaw/openclaw.json
-```
-
-You can also set:
-
-- `TELEGRAM_BOT_TOKEN` as env var, or
-- `channels.telegram.botToken` in OpenClaw config (config value takes precedence).
-
-Reference docs:
-
-- https://openclaw.im/docs/channels/telegram
-- https://openclaw.im/docs/start/wizard
-- https://openclaw.im/docs/gateway/configuration
-
-This repository now contains a **Moltbot Telegram agent** designed to run in Docker and route AI requests to:
-
-1. **Local Ollama** (default)
-2. **Gemini** (optional)
-3. **Azure AI Foundry** (optional)
-
-## What this project includes
-
-- Telegram bot service (`bot/main.py`) built with `python-telegram-bot`
-- Provider routing logic with conditional backend selection (`bot/providers.py`)
-- Environment-based configuration (`bot/config.py`)
-- Custom Docker image with required runtime libraries (`Dockerfile`)
-- Compose stack for bot + Ollama (`docker-compose.yml`)
-
-## Provider routing behavior
-
-By default, all messages go to Ollama.
-
-You can override provider per message by prefixing the prompt:
-
-- `gemini: <your prompt>`
-- `azure: <your prompt>`
-- `ollama: <your prompt>`
-
-If a requested provider is not configured, the bot falls back to Ollama and explains why.
-
-## Environment variables
-
-Copy `.env.example` to `.env` and fill values:
+1. Create `.env`:
 
 ```bash
 cp .env.example .env
 ```
 
-Required:
+2. Fill values in `.env`:
 
 - `TELEGRAM_BOT_TOKEN`
+- `OPENAI_API_KEY`
+- `OLLAMA_BASE_URL=http://ollama:11434`
+- `OLLAMA_MODEL=qwen2.5:7b` (recommended for your current Windows laptop profile)
 
-Optional (for local Ollama):
-
-- `OLLAMA_BASE_URL` (default `http://ollama:11434` in Docker)
-- `OLLAMA_MODEL` (default `llama3.1:8b`)
-
-Optional (Gemini):
-
-- `GEMINI_API_KEY`
-- `GEMINI_MODEL` (default `gemini-1.5-flash`)
-
-Optional (Azure AI Foundry):
-
-- `AZURE_FOUNDRY_ENDPOINT`
-- `AZURE_FOUNDRY_API_KEY`
-- `AZURE_FOUNDRY_MODEL`
-- `AZURE_FOUNDRY_API_VERSION` (default `2024-05-01-preview`)
-
-Optional global behavior:
-
-- `DEFAULT_PROVIDER` (`ollama`, `gemini`, or `azure`; default `ollama`)
-- `REQUEST_TIMEOUT_SECONDS` (default `60`)
-- `ADMIN_USER_IDS` (comma-separated Telegram user IDs that can run admin commands)
-- `ALLOW_UNSAFE_EXEC` (`true` to enable `/exec`; default `false`)
-
-## Telegram control commands
-
-Admin commands are available only to users listed in `ADMIN_USER_IDS`.
-
-- `/whoami` shows your Telegram `user_id` and `chat_id`
-- `/status` shows bot uptime and Ollama connectivity
-- `/models` lists installed Ollama models
-- `/pull <model>` pulls an Ollama model from Telegram
-- `/exec <cmd>` runs a shell command in the bot container (requires `ALLOW_UNSAFE_EXEC=true`)
-
-Example:
-
-```env
-ADMIN_USER_IDS=123456789
-ALLOW_UNSAFE_EXEC=false
-```
-
-## Run with Docker Compose
+3. Build and start:
 
 ```bash
 docker compose up --build -d
 ```
 
-Then pull an Ollama model in the Ollama container once:
+4. Pull an Ollama model (first time):
 
 ```bash
-docker compose exec ollama ollama pull llama3.1:8b
+docker compose exec ollama ollama pull qwen2.5:7b
 ```
 
-Tail logs:
+## Onboard OpenClaw (inside container)
+
+Run onboarding once to initialize OpenClaw config in the persistent volume:
 
 ```bash
-docker compose logs -f bot
+docker compose exec openclaw openclaw onboard
 ```
 
-## Run locally (without Docker)
+Then restart gateway:
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-python -m bot.main
+docker compose restart openclaw
 ```
 
-## Run locally on Windows (with Ollama already installed)
+## Telegram pairing and approval
 
-If Ollama is already running on your Windows host, the fastest setup is to run only the Telegram bot locally.
+If your policy requires pairing:
 
-1. Open PowerShell in this repository.
-2. Create and activate a virtual environment:
-
-```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
+```bash
+docker compose exec openclaw openclaw pairing list telegram
+docker compose exec openclaw openclaw pairing approve telegram <CODE>
 ```
 
-3. Install dependencies:
+## Operations
 
-```powershell
-pip install -r requirements.txt
+Start:
+
+```bash
+docker compose up -d
 ```
 
-4. Copy env template and set required values:
+Restart:
 
-```powershell
-copy .env.example .env
+```bash
+docker compose restart openclaw
 ```
 
-At minimum, provide:
+Logs:
 
-- `TELEGRAM_BOT_TOKEN` (from BotFather)
-- `OLLAMA_BASE_URL=http://127.0.0.1:11434`
-- `OLLAMA_MODEL` (example: `llama3.1:8b`)
-
-Optional but useful if Ollama was installed with CORS restrictions:
-
-- In Ollama environment: `OLLAMA_ORIGINS=*` (or a specific origin)
-
-5. Ensure your model is pulled:
-
-```powershell
-ollama pull llama3.1:8b
+```bash
+docker compose logs -f openclaw
+docker compose logs -f ollama
 ```
 
-6. Start the bot:
+Stop:
 
-```powershell
-python -m bot.main
+```bash
+docker compose down
 ```
 
-If you only want Ollama (no Gemini/Azure), leave Gemini/Azure variables empty.
+Clean reset (also deletes OpenClaw config + Ollama models):
 
-## Notes
+```bash
+docker compose down -v
+docker compose up --build -d
+```
 
-- The bot uses long polling, so no webhook setup is required.
-- Keep API keys in `.env` only (do not commit secrets).
+## Verify it is OpenClaw mode
+
+```bash
+docker compose ps
+```
+
+You should see `openclaw-gateway` and `openclaw-ollama`.
+
+## References
+
+- https://openclaw.im/docs/channels/telegram
+- https://openclaw.im/docs/start/wizard
+- https://openclaw.im/docs/gateway/configuration
