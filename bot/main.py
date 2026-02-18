@@ -45,6 +45,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         "Optional prefixes:\n"
         "- ollama: <prompt>\n"
         "- gemini: <prompt>\n"
+        "- minimax: <prompt>\n"
         "- azure: <prompt>\n\n"
         "Control commands:\n"
         "- /whoami\n"
@@ -55,9 +56,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(
         "Routing rules:\n"
-        "1) Prefix prompt with provider (ollama/gemini/azure) to force backend.\n"
+        "1) Prefix prompt with provider (ollama/gemini/minimax/azure) to force backend.\n"
         "2) Without prefix, DEFAULT_PROVIDER is used.\n"
-        "3) If gemini/azure isn't configured, bot falls back to ollama.\n\n"
+        "3) If gemini/minimax/azure isn't configured, bot falls back to ollama.\n\n"
         "Use /adminhelp for admin control commands."
     )
 

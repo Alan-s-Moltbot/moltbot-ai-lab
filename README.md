@@ -35,6 +35,10 @@ cp .env.example .env
 - `OPENAI_API_KEY`
 - `OLLAMA_BASE_URL=http://ollama:11434`
 - `OLLAMA_MODEL=qwen2.5:7b` (recommended for your current Windows laptop profile)
+- Optional MiniMax routing:
+  - `MINIMAX_API_KEY`
+  - `MINIMAX_BASE_URL=https://api.minimax.io`
+  - `MINIMAX_MODEL=MiniMax-M2.5`
 
 3. Build and start:
 
@@ -112,6 +116,15 @@ docker compose ps
 ```
 
 You should see `openclaw-gateway` and `openclaw-ollama`.
+
+## Provider routing in chat
+
+- Prefix prompts to force provider routing:
+  - `ollama: <prompt>`
+  - `gemini: <prompt>`
+  - `minimax: <prompt>`
+  - `azure: <prompt>`
+- Or set `DEFAULT_PROVIDER` to one of: `ollama`, `gemini`, `minimax`, `azure`.
 
 ## References
 

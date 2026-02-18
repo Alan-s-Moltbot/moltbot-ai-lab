@@ -18,13 +18,17 @@ class Settings:
     gemini_api_key: str | None
     gemini_model: str
 
+    minimax_api_key: str | None
+    minimax_base_url: str
+    minimax_model: str
+
     azure_foundry_endpoint: str | None
     azure_foundry_api_key: str | None
     azure_foundry_model: str | None
     azure_foundry_api_version: str
 
 
-VALID_PROVIDERS = {"ollama", "gemini", "azure"}
+VALID_PROVIDERS = {"ollama", "gemini", "minimax", "azure"}
 
 
 def _env(name: str, default: str | None = None) -> str | None:
@@ -78,6 +82,9 @@ def load_settings() -> Settings:
         ollama_model=_env("OLLAMA_MODEL", "llama3.1:8b") or "llama3.1:8b",
         gemini_api_key=_env("GEMINI_API_KEY"),
         gemini_model=_env("GEMINI_MODEL", "gemini-1.5-flash") or "gemini-1.5-flash",
+        minimax_api_key=_env("MINIMAX_API_KEY"),
+        minimax_base_url=_env("MINIMAX_BASE_URL", "https://api.minimax.io") or "https://api.minimax.io",
+        minimax_model=_env("MINIMAX_MODEL", "MiniMax-M2.5") or "MiniMax-M2.5",
         azure_foundry_endpoint=_env("AZURE_FOUNDRY_ENDPOINT"),
         azure_foundry_api_key=_env("AZURE_FOUNDRY_API_KEY"),
         azure_foundry_model=_env("AZURE_FOUNDRY_MODEL"),

@@ -24,7 +24,7 @@ class ProviderRouter:
         raw = text.strip()
         lowered = raw.lower()
 
-        for provider in ("ollama", "gemini", "azure"):
+        for provider in ("ollama", "gemini", "minimax", "azure"):
             prefix = f"{provider}:"
             if lowered.startswith(prefix):
                 return provider, raw[len(prefix) :].strip()
@@ -61,6 +61,17 @@ class ProviderRouter:
                     warning="Azure AI Foundry is not configured; fell back to Ollama.",
                 )
             return ProviderResult(provider="azure", prompt=prompt, response_text=self._ask_azure(prompt))
+
+        if provider == "minimax":
+            if not self.settings.minimax_api_key:
+                fallback = self._ask_ollama(prompt)
+                return ProviderResult(
+                    provider="ollama",
+                    prompt=prompt,
+                    response_text=fallback,
+                    warning="MiniMax is not configured; fell back to Ollama.",
+                )
+            return ProviderResult(provider="minimax", prompt=prompt, response_text=self._ask_minimax(prompt))
 
         return ProviderResult(provider="ollama", prompt=prompt, response_text=self._ask_ollama(prompt))
 
@@ -153,3 +164,42 @@ class ProviderRouter:
             return joined.strip() or "(No response from Azure AI Foundry)"
 
         return "(No response from Azure AI Foundry)"
+
+    def _ask_minimax(self, prompt: str) -> str:
+        base_url = self.settings.minimax_base_url.rstrip("/")
+        url = f"{base_url}/v1/text/chatcompletion_v2"
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {self.settings.minimax_api_key or ''}",
+        }
+        payload = {
+            "model": self.settings.minimax_model,
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": 0.2,
+            "stream": False,
+        }
+
+        response = requests.post(url, headers=headers, json=payload, timeout=self.settings.request_timeout_seconds)
+        response.raise_for_status()
+        data = response.json()
+
+        choices = data.get("choices", [])
+        if not choices:
+            return "(No response from MiniMax)"
+
+        message = choices[0].get("message", {})
+        content = message.get("content", "")
+        if isinstance(content, str):
+            return content.strip() or "(No response from MiniMax)"
+
+        if isinstance(content, list):
+            chunks = []
+            for item in content:
+                if isinstance(item, dict):
+                    text = item.get("text")
+                    if isinstance(text, str):
+                        chunks.append(text)
+            joined = "\n".join(chunk for chunk in chunks if chunk)
+            return joined.strip() or "(No response from MiniMax)"
+
+        return "(No response from MiniMax)"
