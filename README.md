@@ -1,6 +1,6 @@
 # Moltbot AI Lab
 
-This repository is now configured for **OpenClaw inside Docker** with Telegram control and optional local Ollama.
+This repository is now configured for **OpenClaw inside Docker** with Telegram control, optional local Ollama, and GUI access.
 
 ## Architecture
 
@@ -8,6 +8,9 @@ This repository is now configured for **OpenClaw inside Docker** with Telegram c
 - `ollama` service (optional profile): serves local models
 - `openclaw_data` volume: persists OpenClaw onboarding/config
 - `ollama_data` volume: persists Ollama models (when enabled)
+- OpenClaw GUI ports:
+  - `5900` (VNC)
+  - `6080` (noVNC in browser)
 
 ## Files
 
@@ -39,6 +42,11 @@ cp .env.example .env
   - `MINIMAX_API_KEY`
   - `MINIMAX_BASE_URL=https://api.minimax.io`
   - `MINIMAX_MODEL=MiniMax-M2.5`
+- Optional GUI:
+  - `XVFB_WHD=1920x1080x24`
+  - `VNC_PORT=5900`
+  - `NOVNC_PORT=6080`
+  - `VNC_PASSWORD` (set this for secure VNC access)
 
 3. Build and start:
 
@@ -101,6 +109,12 @@ Logs:
 docker compose logs -f openclaw
 docker compose --profile ollama logs -f ollama
 ```
+
+## OpenClaw GUI access
+
+- Browser UI (noVNC): `http://localhost:6080/vnc.html`
+- Native VNC client: `localhost:5900`
+- If `VNC_PASSWORD` is set in `.env`, use it to authenticate.
 
 Stop:
 

@@ -8,12 +8,27 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     git \
     ca-certificates \
+    chromium \
+    xvfb \
+    x11vnc \
+    openbox \
+    novnc \
+    websockify \
     && rm -rf /var/lib/apt/lists/*
 
 # Install OpenClaw CLI in the container image.
 RUN npm install -g openclaw@latest --verbose
 
+ENV DISPLAY=:99
+ENV CHROME_BIN=/usr/bin/chromium
+ENV BROWSER=/usr/bin/chromium
+
+COPY scripts/start-openclaw-gui.sh /usr/local/bin/start-openclaw-gui.sh
+RUN chmod +x /usr/local/bin/start-openclaw-gui.sh
+
 # OpenClaw gateway default port.
 EXPOSE 18789
+EXPOSE 5900
+EXPOSE 6080
 
-CMD ["openclaw", "gateway"]
+CMD ["/usr/local/bin/start-openclaw-gui.sh"]
