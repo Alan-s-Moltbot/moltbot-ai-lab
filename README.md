@@ -1,13 +1,13 @@
 # Moltbot AI Lab
 
-This repository is now configured for **OpenClaw inside Docker** with Telegram control and local Ollama.
+This repository is now configured for **OpenClaw inside Docker** with Telegram control and optional local Ollama.
 
 ## Architecture
 
 - `openclaw` service: runs `openclaw gateway`
-- `ollama` service: serves local models
+- `ollama` service (optional profile): serves local models
 - `openclaw_data` volume: persists OpenClaw onboarding/config
-- `ollama_data` volume: persists Ollama models
+- `ollama_data` volume: persists Ollama models (when enabled)
 
 ## Files
 
@@ -44,6 +44,12 @@ cp .env.example .env
 
 ```bash
 docker compose up --build -d
+```
+
+To also start Ollama for local-model routing:
+
+```bash
+docker compose --profile ollama up --build -d
 ```
 
 4. Pull an Ollama model (first time):
@@ -93,7 +99,7 @@ Logs:
 
 ```bash
 docker compose logs -f openclaw
-docker compose logs -f ollama
+docker compose --profile ollama logs -f ollama
 ```
 
 Stop:
@@ -116,6 +122,7 @@ docker compose ps
 ```
 
 You should see `openclaw-gateway` and `openclaw-ollama`.
+If you started without the `ollama` profile, only `openclaw-gateway` will be present.
 
 ## Provider routing in chat
 
