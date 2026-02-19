@@ -1,4 +1,4 @@
-# Moltbot AI Lab
+# Open Claw AI Lab
 
 This repository is configured for a **Linux CLI-only OpenClaw gateway** with Telegram control and **MiniMax as the agent model backend**.
 
@@ -8,12 +8,20 @@ This repository is configured for a **Linux CLI-only OpenClaw gateway** with Tel
 - `openclaw_data` volume: persists OpenClaw onboarding/config
 - No UI services (no VNC/noVNC)
 - No Ollama sidecar service
+- No Python bot runtime in this stack
 
 ## Files
 
 - `docker-compose.yml` - CLI-only OpenClaw stack
 - `Dockerfile.openclaw` - lightweight OpenClaw CLI image
 - `.env.example` - required MiniMax + Telegram environment variables
+
+Removed as unnecessary for this setup:
+
+- `Dockerfile` (legacy Python bot image)
+- `bot/` (legacy Telegram bot implementation)
+- `requirements.txt` (legacy Python dependencies)
+- `scripts/start-openclaw-gui.sh` (legacy VNC/noVNC UI launcher)
 
 ## Prerequisites
 
@@ -44,6 +52,8 @@ docker compose up --build -d
 ```
 
 ## Onboard OpenClaw (inside container)
+
+This stack is **not unattended yet**. It currently requires the one-time onboarding step below.
 
 Run onboarding once to initialize OpenClaw config in the persistent volume:
 
@@ -107,9 +117,10 @@ docker compose ps
 
 You should only see `openclaw-gateway`.
 
-## Provider routing in chat
+## Unattended setup status
 
-Use MiniMax as the default provider for your bot runtime (`DEFAULT_PROVIDER=minimax`) and configure `MINIMAX_API_KEY`.
+- Current status: **manual onboarding required** (`openclaw onboard` once).
+- If you want fully unattended provisioning, we need to add the proper OpenClaw non-interactive configuration flow once we confirm the current upstream method.
 
 ## References
 
