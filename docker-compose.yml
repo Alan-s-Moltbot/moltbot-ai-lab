@@ -11,32 +11,11 @@ services:
       - openclaw_data:/root/.openclaw
     ports:
       - "18789:18789"
-      - "5900:5900"
-      - "6080:6080"
-    environment:
-      XVFB_WHD: ${XVFB_WHD:-1920x1080x24}
-      VNC_PORT: ${VNC_PORT:-5900}
-      NOVNC_PORT: ${NOVNC_PORT:-6080}
-      VNC_PASSWORD: ${VNC_PASSWORD:-}
-    networks:
-      - openclaw-net
-
-  ollama:
-    image: ollama/ollama:latest
-    container_name: openclaw-ollama
-    profiles:
-      - ollama
-    restart: unless-stopped
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama_data:/root/.ollama
     networks:
       - openclaw-net
 
 volumes:
   openclaw_data:
-  ollama_data:
 
 networks:
   openclaw-net:
