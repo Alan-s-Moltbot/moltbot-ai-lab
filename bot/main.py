@@ -10,8 +10,6 @@ from telegram import Update
 from telegram.constants import ChatAction
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
 
-import requests
-
 from bot.config import Settings, load_settings
 from bot.providers import ProviderRouter
 
@@ -41,12 +39,7 @@ async def _require_admin(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(
-        "Hi, I'm Moltbot. Send a message and I will route it to an AI backend.\n\n"
-        "Optional prefixes:\n"
-        "- ollama: <prompt>\n"
-        "- gemini: <prompt>\n"
-        "- minimax: <prompt>\n"
-        "- azure: <prompt>\n\n"
+        "Hi, I'm Moltbot. Send a message and I will query MiniMax.\n\n"
         "Control commands:\n"
         "- /whoami\n"
         "- /adminhelp"
@@ -56,9 +49,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(
         "Routing rules:\n"
-        "1) Prefix prompt with provider (ollama/gemini/minimax/azure) to force backend.\n"
-        "2) Without prefix, DEFAULT_PROVIDER is used.\n"
-        "3) If gemini/minimax/azure isn't configured, bot falls back to ollama.\n\n"
+        "1) Every prompt is sent to MiniMax.\n"
+        "2) Configure MINIMAX_API_KEY in your environment.\n\n"
         "Use /adminhelp for admin control commands."
     )
 
@@ -78,9 +70,7 @@ async def admin_help(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
         return
     await update.message.reply_text(
         "Admin commands:\n"
-        "/status - bot + ollama health\n"
-        "/models - list Ollama models\n"
-        "/pull <model> - pull Ollama model\n"
+        "/status - bot status + MiniMax configuration\n"
         "/exec <cmd> - run shell command in bot container (requires ALLOW_UNSAFE_EXEC=true)"
     )
 
@@ -92,77 +82,12 @@ async def status(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     settings: Settings = context.application.bot_data["settings"]
     start_time: datetime = context.application.bot_data["start_time"]
     uptime_seconds = int((datetime.now(timezone.utc) - start_time).total_seconds())
-    url = f"{settings.ollama_base_url.rstrip('/')}/api/tags"
-    try:
-        response = await asyncio.to_thread(
-            requests.get,
-            url,
-            timeout=settings.request_timeout_seconds,
-        )
-        response.raise_for_status()
-        data = response.json()
-        models = data.get("models", [])
-        await update.message.reply_text(
-            f"Bot uptime: {uptime_seconds}s\n"
-            f"Ollama URL: {settings.ollama_base_url}\n"
-            f"Ollama status: OK\n"
-            f"Installed models: {len(models)}"
-        )
-    except Exception as exc:  # noqa: BLE001
-        await update.message.reply_text(
-            f"Bot uptime: {uptime_seconds}s\n"
-            f"Ollama URL: {settings.ollama_base_url}\n"
-            f"Ollama status: ERROR ({exc})"
-        )
-
-
-async def models(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    if not await _require_admin(update, context):
-        return
-
-    settings: Settings = context.application.bot_data["settings"]
-    url = f"{settings.ollama_base_url.rstrip('/')}/api/tags"
-    try:
-        response = await asyncio.to_thread(requests.get, url, timeout=settings.request_timeout_seconds)
-        response.raise_for_status()
-        data = response.json()
-        models_data = data.get("models", [])
-        if not models_data:
-            await update.message.reply_text("No Ollama models installed.")
-            return
-        lines = [f"- {item.get('name', 'unknown')}" for item in models_data]
-        await update.message.reply_text("Installed Ollama models:\n" + "\n".join(lines[:100]))
-    except Exception as exc:  # noqa: BLE001
-        await update.message.reply_text(f"Failed to list models: {exc}")
-
-
-async def pull_model(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    if not await _require_admin(update, context):
-        return
-
-    settings: Settings = context.application.bot_data["settings"]
-    if not context.args:
-        await update.message.reply_text("Usage: /pull <model>\nExample: /pull qwen2.5:7b")
-        return
-    model = context.args[0].strip()
-    if not model:
-        await update.message.reply_text("Model cannot be empty.")
-        return
-
-    await update.message.reply_text(f"Pulling model `{model}` ... this may take a while.", parse_mode="Markdown")
-    url = f"{settings.ollama_base_url.rstrip('/')}/api/pull"
-    payload = {"name": model, "stream": False}
-    try:
-        response = await asyncio.to_thread(
-            requests.post,
-            url,
-            json=payload,
-            timeout=max(settings.request_timeout_seconds, 600),
-        )
-        response.raise_for_status()
-        await update.message.reply_text(f"Model pull completed: {model}")
-    except Exception as exc:  # noqa: BLE001
-        await update.message.reply_text(f"Failed to pull model {model}: {exc}")
+    await update.message.reply_text(
+        f"Bot uptime: {uptime_seconds}s\n"
+        f"Provider: MiniMax\n"
+        f"MiniMax URL: {settings.minimax_base_url}\n"
+        f"MiniMax model: {settings.minimax_model}"
+    )
 
 
 async def exec_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -214,11 +139,7 @@ async def on_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
         await update.message.reply_text(f"Error while processing your request: {exc}")
         return
 
-    header = f"Provider: {result.provider}"
-    if result.warning:
-        header = f"{header}\nWarning: {result.warning}"
-
-    await update.message.reply_text(f"{header}\n\n{result.response_text}")
+    await update.message.reply_text(f"Provider: {result.provider}\n\n{result.response_text}")
 
 
 def main() -> None:
@@ -236,8 +157,6 @@ def main() -> None:
     application.add_handler(CommandHandler("whoami", whoami))
     application.add_handler(CommandHandler("adminhelp", admin_help))
     application.add_handler(CommandHandler("status", status))
-    application.add_handler(CommandHandler("models", models))
-    application.add_handler(CommandHandler("pull", pull_model))
     application.add_handler(CommandHandler("exec", exec_cmd))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, on_message))
 
