@@ -16,4 +16,4 @@ RUN npm install -g openclaw@latest --verbose
 # OpenClaw gateway default port.
 EXPOSE 18789
 
-CMD ["openclaw", "gateway"]
+CMD ["openclaw", "gateway", "--allow-unconfigured"]

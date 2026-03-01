@@ -1,87 +1,92 @@
 # Open Claw AI Lab
 
-This repository is configured for a **Linux CLI-only OpenClaw gateway** with Telegram control and **MiniMax as the agent model backend**.
+This repository runs a minimal Docker-based OpenClaw gateway with Telegram control and MiniMax as the model backend.
 
-## Architecture
+## Current Stack
 
-- `openclaw` service: runs `openclaw gateway`
-- `openclaw_data` volume: persists OpenClaw onboarding/config
-- No UI services (no VNC/noVNC)
-- No Ollama sidecar service
-- No Python bot runtime in this stack
+- Single `openclaw` service in [docker-compose.yml](/Users/alan.man/Documents/personal-workbench/openclaw-lab/docker-compose.yml)
+- Custom image in [Dockerfile.openclaw](/Users/alan.man/Documents/personal-workbench/openclaw-lab/Dockerfile.openclaw)
+- Base image: `node:22-bookworm-slim`
+- OpenClaw install: `npm install -g openclaw@latest`
+- Container command: `openclaw gateway --allow-unconfigured`
+- Persistent config volume: `openclaw_data` mounted at `/root/.openclaw`
+- Gateway port: `18789`
 
-## Files
+## Repository Files
 
-- `docker-compose.yml` - CLI-only OpenClaw stack
-- `Dockerfile.openclaw` - lightweight OpenClaw CLI image
-- `.env.example` - required MiniMax + Telegram environment variables
+- [README.md](/Users/alan.man/Documents/personal-workbench/openclaw-lab/README.md): setup and operations
+- [docker-compose.yml](/Users/alan.man/Documents/personal-workbench/openclaw-lab/docker-compose.yml): single-service stack
+- [Dockerfile.openclaw](/Users/alan.man/Documents/personal-workbench/openclaw-lab/Dockerfile.openclaw): OpenClaw image build
+- [.env.example](/Users/alan.man/Documents/personal-workbench/openclaw-lab/.env.example): required environment variables
 
-Removed as unnecessary for this setup:
+## Requirements
 
-- `Dockerfile` (legacy Python bot image)
-- `bot/` (legacy Telegram bot implementation)
-- `requirements.txt` (legacy Python dependencies)
-- `scripts/start-openclaw-gui.sh` (legacy VNC/noVNC UI launcher)
-
-## Prerequisites
-
-- Linux host with Docker Engine + Docker Compose plugin
+- Docker Engine or Docker Desktop with `docker compose`
 - Telegram bot token from BotFather
 - MiniMax API key
 
-## Setup
+## Configuration
 
-1. Create `.env`:
+Create your local env file:
 
 ```bash
 cp .env.example .env
 ```
 
-2. Fill values in `.env`:
+Set these values in `.env`:
 
 - `TELEGRAM_BOT_TOKEN`
 - `MINIMAX_API_KEY`
-- Optional overrides:
-  - `MINIMAX_BASE_URL=https://api.minimax.io`
-  - `MINIMAX_MODEL=MiniMax-M2.5`
+- Optional: `MINIMAX_BASE_URL` (default `https://api.minimax.io`)
+- Optional: `MINIMAX_MODEL` (default `MiniMax-M2.5`)
 
-3. Build and start:
+## Start The Stack
+
+Build and start the gateway:
 
 ```bash
 docker compose up --build -d
 ```
 
-## Onboard OpenClaw (inside container)
+The container is published as `openclaw-gateway` and exposes port `18789`.
 
-This stack is **not unattended yet**. It currently requires the one-time onboarding step below.
+## First-Time Onboarding
 
-Run onboarding once to initialize OpenClaw config in the persistent volume:
+The image starts OpenClaw with `--allow-unconfigured`, but initial setup is still manual. Run onboarding once to create the persistent OpenClaw config:
 
 ```bash
 docker compose exec openclaw openclaw onboard
 ```
 
-Then restart gateway:
+Then restart the service:
 
 ```bash
 docker compose restart openclaw
 ```
 
-## Telegram pairing and approval
+Because `/root/.openclaw` is stored in the `openclaw_data` volume, onboarding normally only needs to be done once.
 
-If your policy requires pairing:
+## Telegram Pairing
+
+If Telegram pairing approval is required:
 
 ```bash
 docker compose exec openclaw openclaw pairing list telegram
 docker compose exec openclaw openclaw pairing approve telegram <CODE>
 ```
 
-## Operations
+## Common Commands
 
-Start:
+Start an existing stack:
 
 ```bash
 docker compose up -d
+```
+
+View logs:
+
+```bash
+docker compose logs -f openclaw
 ```
 
 Restart:
@@ -90,37 +95,33 @@ Restart:
 docker compose restart openclaw
 ```
 
-Logs:
-
-```bash
-docker compose logs -f openclaw
-```
-
 Stop:
 
 ```bash
 docker compose down
 ```
 
-Clean reset (also deletes OpenClaw config):
+Reset everything, including saved OpenClaw config:
 
 ```bash
 docker compose down -v
 docker compose up --build -d
 ```
 
-## Verify it is CLI-only OpenClaw mode
+## Verify
+
+Check the running service:
 
 ```bash
 docker compose ps
 ```
 
-You should only see `openclaw-gateway`.
+You should see a single container named `openclaw-gateway`.
 
-## Unattended setup status
+## Notes
 
-- Current status: **manual onboarding required** (`openclaw onboard` once).
-- If you want fully unattended provisioning, we need to add the proper OpenClaw non-interactive configuration flow once we confirm the current upstream method.
+- This repo does not include a GUI, VNC/noVNC, Ollama sidecar, or legacy Python bot runtime.
+- The OpenClaw version is not pinned in this repo; each build installs whatever `openclaw@latest` resolves to at build time.
 
 ## References
 
