@@ -1,0 +1,4 @@
+#!/bin/sh
+set -eu
+
+exec /usr/bin/brave-browser-stable --no-sandbox --disable-dev-shm-usage "$@"

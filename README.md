@@ -1,6 +1,6 @@
 # Open Claw AI Lab
 
-This repository runs a minimal Docker-based OpenClaw gateway with Telegram control and MiniMax as the model backend.
+This repository runs an OpenClaw gateway in Docker with a lightweight Linux desktop, Brave browser, and raw VNC access, alongside the existing Telegram and MiniMax integration.
 
 ## Current Stack
 
@@ -8,9 +8,12 @@ This repository runs a minimal Docker-based OpenClaw gateway with Telegram contr
 - Custom image in [Dockerfile.openclaw](/Users/alan.man/Documents/personal-workbench/openclaw-lab/Dockerfile.openclaw)
 - Base image: `node:22-bookworm-slim`
 - OpenClaw install: `npm install -g openclaw@latest`
-- Container command: `openclaw gateway --allow-unconfigured`
+- Desktop stack: `Xvfb + XFCE + x11vnc + Brave`
+- Process supervisor: `supervisord`
+- OpenClaw command: `openclaw gateway --allow-unconfigured`
 - Persistent config volume: `openclaw_data` mounted at `/root/.openclaw`
 - Gateway port: `18789`
+- VNC port: `5901`
 
 ## Repository Files
 
@@ -24,6 +27,7 @@ This repository runs a minimal Docker-based OpenClaw gateway with Telegram contr
 - Docker Engine or Docker Desktop with `docker compose`
 - Telegram bot token from BotFather
 - MiniMax API key
+- A VNC viewer client
 
 ## Configuration
 
@@ -39,16 +43,50 @@ Set these values in `.env`:
 - `MINIMAX_API_KEY`
 - Optional: `MINIMAX_BASE_URL` (default `https://api.minimax.io`)
 - Optional: `MINIMAX_MODEL` (default `MiniMax-M2.5`)
+- `VNC_PASSWORD` for desktop access
+- Optional: `VNC_PORT` (default `5901`)
+- Optional: `SCREEN_GEOMETRY` (default `1440x900x24`)
+
+Example:
+
+```dotenv
+TELEGRAM_BOT_TOKEN=...
+MINIMAX_API_KEY=...
+VNC_PASSWORD=replace-this
+VNC_PORT=5901
+SCREEN_GEOMETRY=1440x900x24
+```
 
 ## Start The Stack
 
-Build and start the gateway:
+Build and start the container:
 
 ```bash
 docker compose up --build -d
 ```
 
-The container is published as `openclaw-gateway` and exposes port `18789`.
+The container is published as `openclaw-gateway` and exposes:
+
+- `18789` for the OpenClaw gateway
+- `5901` for VNC access
+
+## Desktop Access
+
+Connect your VNC client to:
+
+```text
+<docker-host>:5901
+```
+
+Authenticate with the `VNC_PASSWORD` value from `.env`.
+
+After connection, you should see:
+
+- an XFCE desktop session
+- Brave Browser available from the application menu
+- the OpenClaw gateway continuing to run in the background
+
+If Docker is running on the same machine as your VNC client, `localhost:5901` is usually the correct host.
 
 ## First-Time Onboarding
 
@@ -116,11 +154,14 @@ Check the running service:
 docker compose ps
 ```
 
-You should see a single container named `openclaw-gateway`.
+You should see a single container named `openclaw-gateway` with port mappings for `18789` and `5901`.
 
 ## Notes
 
-- This repo does not include a GUI, VNC/noVNC, Ollama sidecar, or legacy Python bot runtime.
+- This repo now includes a lightweight desktop, Brave, and raw VNC access for native VNC clients.
+- VNC is exposed directly on port `5901`; this repo does not currently include noVNC or a browser-based remote desktop.
+- Brave is launched with container-safe flags so it can run inside the root-owned desktop session.
+- It still does not include noVNC, an Ollama sidecar, or a legacy Python bot runtime.
 - The OpenClaw version is not pinned in this repo; each build installs whatever `openclaw@latest` resolves to at build time.
 
 ## References

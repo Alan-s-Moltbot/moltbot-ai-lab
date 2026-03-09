@@ -7,10 +7,15 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+    environment:
+      DISPLAY: ${DISPLAY:-:1}
+      VNC_PORT: ${VNC_PORT:-5901}
+      SCREEN_GEOMETRY: ${SCREEN_GEOMETRY:-1440x900x24}
     volumes:
       - openclaw_data:/root/.openclaw
     ports:
       - "18789:18789"
+      - "5901:5901"
     networks:
       - openclaw-net
 

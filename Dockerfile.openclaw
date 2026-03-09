@@ -1,19 +1,50 @@
 FROM node:22-bookworm-slim
 
 ENV NODE_ENV=production
+ENV DISPLAY=:1
+ENV VNC_PORT=5901
+ENV SCREEN_GEOMETRY=1440x900x24
 
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl \
-    git \
     ca-certificates \
+    curl \
+    dbus-x11 \
+    git \
+    gnupg \
+    supervisor \
+    xfce4 \
+    xfce4-terminal \
+    x11vnc \
+    xvfb \
+    xauth \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN curl -fsSLo /usr/share/keyrings/brave-browser-archive-keyring.gpg \
+      https://brave-browser-apt-release.s3.brave.com/brave-browser-archive-keyring.gpg \
+    && echo "deb [signed-by=/usr/share/keyrings/brave-browser-archive-keyring.gpg] https://brave-browser-apt-release.s3.brave.com/ stable main" \
+      > /etc/apt/sources.list.d/brave-browser-release.list \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends brave-browser \
     && rm -rf /var/lib/apt/lists/*
 
 # Install OpenClaw CLI in the container image.
 RUN npm install -g openclaw@latest --verbose
 
-# OpenClaw gateway default port.
-EXPOSE 18789
+RUN mkdir -p /var/log/supervisor /etc/supervisor/conf.d /opt/openclaw/bin
 
-CMD ["openclaw", "gateway", "--allow-unconfigured"]
+COPY docker/supervisord.conf /etc/supervisor/conf.d/openclaw.conf
+COPY docker/start-vnc.sh /opt/openclaw/bin/start-vnc.sh
+COPY docker/start-openclaw.sh /opt/openclaw/bin/start-openclaw.sh
+COPY docker/brave-browser-stable /usr/local/bin/brave-browser-stable
+
+RUN chmod +x \
+    /opt/openclaw/bin/start-vnc.sh \
+    /opt/openclaw/bin/start-openclaw.sh \
+    /usr/local/bin/brave-browser-stable
+
+# OpenClaw gateway default port and VNC desktop port.
+EXPOSE 18789 5901
+
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/openclaw.conf"]
