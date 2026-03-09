@@ -1,6 +1,6 @@
 # Open Claw AI Lab
 
-This repository runs an OpenClaw gateway in Docker with a lightweight Linux desktop, Brave browser, and raw VNC access, alongside the existing Telegram and MiniMax integration.
+This repository runs an OpenClaw gateway in Docker with a lightweight Linux desktop, Brave browser, raw VNC access, and first-boot MiniMax seeding from `.env`.
 
 ## Current Stack
 
@@ -11,6 +11,7 @@ This repository runs an OpenClaw gateway in Docker with a lightweight Linux desk
 - Desktop stack: `Xvfb + XFCE + x11vnc + Brave`
 - Process supervisor: `supervisord`
 - OpenClaw command: `openclaw gateway --allow-unconfigured`
+- First-boot config seed: writes `/root/.openclaw/openclaw.json` from `.env` when no persisted OpenClaw config exists
 - Persistent config volume: `openclaw_data` mounted at `/root/.openclaw`
 - Gateway port: `18789`
 - VNC port: `5901`
@@ -43,7 +44,7 @@ Set these values in `.env`:
 - `MINIMAX_API_KEY`
 - Optional: `MINIMAX_BASE_URL` (default `https://api.minimax.io`)
 - Optional: `MINIMAX_MODEL` (default `MiniMax-M2.5`)
-- `VNC_PASSWORD` for desktop access
+- Optional: `VNC_PASSWORD` for desktop access
 - Optional: `VNC_PORT` (default `5901`)
 - Optional: `SCREEN_GEOMETRY` (default `1440x900x24`)
 
@@ -56,6 +57,8 @@ VNC_PASSWORD=replace-this
 VNC_PORT=5901
 SCREEN_GEOMETRY=1440x900x24
 ```
+
+If `VNC_PASSWORD` is left empty, the container starts VNC with the fallback password `change-me` and logs a warning.
 
 ## Start The Stack
 
@@ -79,6 +82,7 @@ Connect your VNC client to:
 ```
 
 Authenticate with the `VNC_PASSWORD` value from `.env`.
+If you do not set one, use the fallback password `change-me`.
 
 After connection, you should see:
 
@@ -87,6 +91,16 @@ After connection, you should see:
 - the OpenClaw gateway continuing to run in the background
 
 If Docker is running on the same machine as your VNC client, `localhost:5901` is usually the correct host.
+
+## First-Time Bootstrap
+
+On a fresh `openclaw_data` volume, the container seeds `/root/.openclaw/openclaw.json` from `.env` before the gateway starts:
+
+- `MINIMAX_API_KEY`
+- `MINIMAX_BASE_URL`
+- `MINIMAX_MODEL`
+
+The seed only runs when no prior OpenClaw config exists. If the volume already contains OpenClaw state, the container preserves it and logs that bootstrap was skipped.
 
 ## First-Time Onboarding
 
@@ -161,8 +175,20 @@ You should see a single container named `openclaw-gateway` with port mappings fo
 - This repo now includes a lightweight desktop, Brave, and raw VNC access for native VNC clients.
 - VNC is exposed directly on port `5901`; this repo does not currently include noVNC or a browser-based remote desktop.
 - Brave is launched with container-safe flags so it can run inside the root-owned desktop session.
+- Fresh volumes are seeded to use MiniMax from `.env`; existing persisted OpenClaw state is preserved.
 - It still does not include noVNC, an Ollama sidecar, or a legacy Python bot runtime.
 - The OpenClaw version is not pinned in this repo; each build installs whatever `openclaw@latest` resolves to at build time.
+
+## Troubleshooting
+
+- `VNC_PASSWORD is not set; using insecure fallback password 'change-me'`
+  The container started VNC without an explicit password. Set `VNC_PASSWORD` in `.env` to remove the warning.
+- `startxfce4: X server already running on display :0`
+  This should be fixed by the new XFCE startup path. If it still appears, rebuild the image to ensure the updated supervisor/scripts are in use.
+- `No API key found for provider "anthropic"`
+  The mounted `openclaw_data` volume already contains prior OpenClaw state that points at Anthropic. The container preserves existing state by design. Reset the volume with `docker compose down -v` for a fresh MiniMax seed, or reconfigure the existing OpenClaw config manually.
+- Telegram `groupPolicy` allowlist warning
+  This is an OpenClaw channel policy warning, not a container startup failure. Configure Telegram allowlists or change the policy inside the OpenClaw config.
 
 ## References
 

@@ -8,8 +8,8 @@ export SCREEN_GEOMETRY="${SCREEN_GEOMETRY:-1440x900x24}"
 mkdir -p /root/.vnc
 
 if [ -z "${VNC_PASSWORD:-}" ]; then
-  echo "VNC_PASSWORD must be set" >&2
-  exit 1
+  VNC_PASSWORD="change-me"
+  echo "WARNING: VNC_PASSWORD is not set; using insecure fallback password 'change-me'" >&2
 fi
 
 x11vnc -storepasswd "${VNC_PASSWORD}" /root/.vnc/passwd >/dev/null

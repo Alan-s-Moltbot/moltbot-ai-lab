@@ -9,7 +9,12 @@ services:
       - .env
     environment:
       DISPLAY: ${DISPLAY:-:1}
+      MINIMAX_API_KEY: ${MINIMAX_API_KEY:-}
+      MINIMAX_BASE_URL: ${MINIMAX_BASE_URL:-https://api.minimax.io}
+      MINIMAX_MODEL: ${MINIMAX_MODEL:-MiniMax-M2.5}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
       VNC_PORT: ${VNC_PORT:-5901}
+      VNC_PASSWORD: ${VNC_PASSWORD:-}
       SCREEN_GEOMETRY: ${SCREEN_GEOMETRY:-1440x900x24}
     volumes:
       - openclaw_data:/root/.openclaw

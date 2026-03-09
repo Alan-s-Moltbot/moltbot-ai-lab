@@ -10,12 +10,17 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     curl \
+    dbus \
     dbus-x11 \
     git \
     gnupg \
+    libnotify-bin \
     supervisor \
     xfce4 \
+    xfce4-notifyd \
+    xfce4-power-manager \
     xfce4-terminal \
+    tumbler \
     x11vnc \
     xvfb \
     xauth \
@@ -35,14 +40,22 @@ RUN npm install -g openclaw@latest --verbose
 RUN mkdir -p /var/log/supervisor /etc/supervisor/conf.d /opt/openclaw/bin
 
 COPY docker/supervisord.conf /etc/supervisor/conf.d/openclaw.conf
+COPY docker/start-dbus-system.sh /opt/openclaw/bin/start-dbus-system.sh
+COPY docker/start-xfce.sh /opt/openclaw/bin/start-xfce.sh
+COPY docker/init-openclaw-config.sh /opt/openclaw/bin/init-openclaw-config.sh
 COPY docker/start-vnc.sh /opt/openclaw/bin/start-vnc.sh
 COPY docker/start-openclaw.sh /opt/openclaw/bin/start-openclaw.sh
 COPY docker/brave-browser-stable /usr/local/bin/brave-browser-stable
+COPY docker/pm-is-supported /usr/local/bin/pm-is-supported
 
 RUN chmod +x \
+    /opt/openclaw/bin/start-dbus-system.sh \
+    /opt/openclaw/bin/start-xfce.sh \
+    /opt/openclaw/bin/init-openclaw-config.sh \
     /opt/openclaw/bin/start-vnc.sh \
     /opt/openclaw/bin/start-openclaw.sh \
-    /usr/local/bin/brave-browser-stable
+    /usr/local/bin/brave-browser-stable \
+    /usr/local/bin/pm-is-supported
 
 # OpenClaw gateway default port and VNC desktop port.
 EXPOSE 18789 5901
